@@ -81,7 +81,7 @@ There is no custom native module, which is what keeps Expo Go usable.
 ## Install
 
 ```sh
-git clone https://github.com/your-username/foset.git
+git clone https://github.com/BiligoCode/foset.git
 cd foset
 npm install
 ```
