@@ -60,7 +60,7 @@ Foset has no backend. There is nothing to sign up for and no telemetry.
 
 | Piece | Choice |
 | --- | --- |
-| Framework | Expo SDK 57, React Native 0.86, TypeScript |
+| Framework | Expo SDK 54, React Native 0.81, TypeScript |
 | Navigation | Expo Router (file based, in `app/`) |
 | Database | `expo-sqlite` |
 | Files | `expo-file-system` |
@@ -86,10 +86,6 @@ cd foset
 npm install
 ```
 
-The repo ships an `.npmrc` with `legacy-peer-deps=true`. Expo SDK 57 pins a `react` version that
-is slightly older than the peer range `expo-router`'s web dependencies ask for. The mismatch does
-not affect the app, and the flag keeps a clean `npm install` working.
-
 ## Run it
 
 ```sh
@@ -103,6 +99,11 @@ Metro starts and prints a QR code.
 Install **Expo Go** from the App Store or Play Store, then scan the QR code (Camera app on iOS,
 the Expo Go app on Android). Expo Go is enough: every native module Foset uses ships inside it,
 and the image processing is plain JavaScript.
+
+Foset stays on SDK 54 on purpose. Expo Go on the iOS App Store has not moved past 54, so a newer
+SDK builds fine but refuses to open on an iPhone with "Project is incompatible with this version
+of Expo Go". Bump the SDK only if you are willing to drop iOS Expo Go and use a development build
+instead.
 
 If you would rather install Foset as a standalone app, build a development build with
 [EAS](https://docs.expo.dev/develop/development-builds/introduction/):

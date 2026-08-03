@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { Tabs } from 'expo-router/js-tabs';
+import { Tabs, useRouter } from 'expo-router';
 
 import { HeaderButton } from '../../src/components/HeaderButton';
 import { colors, typography } from '../../src/theme';
