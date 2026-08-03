@@ -39,3 +39,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# private build notes
+PROMPT.md
+
+# local editor and assistant config
+.claude/
+
+# personal wardrobe data
+*.zip
