@@ -86,11 +86,13 @@ export function OutfitForm({
           </Text>
         }
         renderItem={({ item }) => (
-          <ClothingCard
-            item={item}
-            selected={selection.includes(item.id)}
-            onPress={() => toggle(item.id)}
-          />
+          <View style={styles.cell}>
+            <ClothingCard
+              item={item}
+              selected={selection.includes(item.id)}
+              onPress={() => toggle(item.id)}
+            />
+          </View>
         )}
       />
 
@@ -113,6 +115,10 @@ const styles = StyleSheet.create({
   },
   column: {
     gap: spacing.md,
+  },
+  cell: {
+    flex: 1,
+    maxWidth: '50%',
   },
   header: {
     gap: spacing.lg,

@@ -72,7 +72,9 @@ export default function ClothesScreen() {
           />
         }
         renderItem={({ item }) => (
-          <ClothingCard item={item} onPress={() => router.push(`/clothes/${item.id}`)} />
+          <View style={styles.cell}>
+            <ClothingCard item={item} onPress={() => router.push(`/clothes/${item.id}`)} />
+          </View>
         )}
       />
     </View>
@@ -91,5 +93,10 @@ const styles = StyleSheet.create({
   },
   column: {
     gap: spacing.md,
+  },
+  // Half a row, so aspect-ratio images get a real width when two cards sit side by side.
+  cell: {
+    flex: 1,
+    maxWidth: '50%',
   },
 });
