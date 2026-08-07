@@ -49,8 +49,9 @@ Deliberately out of scope, so expectations are honest:
 
 Foset has no backend. There is nothing to sign up for and no telemetry.
 
-- Photos are processed on the device. No image is ever uploaded, and no paid background-removal
-  service is involved.
+- Photos are processed on the device. No image is ever uploaded to a background-removal API.
+  On Android, Google Play Services may download the ML Kit subject model once (~10MB). That is a
+  model download, not your photos.
 - Processed images are written to the app's private directory, not to your camera roll.
 - Clothing and outfit records live in a local SQLite file.
 - The only way data leaves the phone is when you tap **Export backup** and choose where to send
@@ -65,18 +66,20 @@ Foset has no backend. There is nothing to sign up for and no telemetry.
 | Database | `expo-sqlite` |
 | Files | `expo-file-system` |
 | Camera and library | `expo-image-picker` |
-| Image decode and resize | `expo-image-manipulator` plus `jpeg-js` |
-| Background removal | custom, in `src/imaging/studio.ts` |
+| Image decode and resize | `expo-image-manipulator`, `jpeg-js`, `upng-js` |
+| Background removal | native ML via `rn-remove-image-bg` (Vision / U2Netp / ML Kit Subject Segmentation), with a JavaScript flood-fill fallback |
 | Backup archive | `jszip` |
 
-There is no custom native module, which is what keeps Expo Go usable.
+The ML cutout needs a **development build**. Expo Go does not include the native module.
 
 ## Requirements
 
 - **Node.js 20 or newer** and npm.
 - **A phone or an emulator.** Foset does not run in a browser.
-- For a simulator or emulator: **Xcode** (macOS only) or **Android Studio**.
-- For running on your own phone, nothing beyond the **Expo Go** app.
+- For local native builds: **Xcode** (macOS, for iOS) and/or **Android Studio**.
+- For cloud builds: an [Expo](https://expo.dev) account and [EAS CLI](https://docs.expo.dev/build/setup/).
+- **iPhone installs:** an Apple Developer account for installing on a real device.
+- **Android installs:** Google Play Services on the phone (needed for ML Kit). Emulators without Play Store will not get the subject model.
 
 ## Install
 
@@ -86,56 +89,86 @@ cd foset
 npm install
 ```
 
+The repo ships an `.npmrc` with `legacy-peer-deps=true` so a clean install survives a peer
+mismatch between Expo's pinned `react` and some of `expo-router`'s web dependencies.
+
 ## Run it
 
-```sh
-npm start
-```
+Foset needs a **custom binary** for the ML background remover. Expo Go alone falls back to the
+weaker JavaScript cutout.
 
-Metro starts and prints a QR code.
+### 1. Create a development build
 
-### On your own phone
-
-Install **Expo Go** from the App Store or Play Store, then scan the QR code (Camera app on iOS,
-the Expo Go app on Android). Expo Go is enough: every native module Foset uses ships inside it,
-and the image processing is plain JavaScript.
-
-Foset stays on SDK 54 on purpose. Expo Go on the iOS App Store has not moved past 54, so a newer
-SDK builds fine but refuses to open on an iPhone with "Project is incompatible with this version
-of Expo Go". Bump the SDK only if you are willing to drop iOS Expo Go and use a development build
-instead.
-
-If you would rather install Foset as a standalone app, build a development build with
-[EAS](https://docs.expo.dev/develop/development-builds/introduction/):
+**Option A: EAS (recommended if you do not want Android Studio / Xcode locally)**
 
 ```sh
-npx eas-cli build --profile development --platform ios     # or android
+npm install -g eas-cli
+eas login
+eas build:configure
+eas build --profile development --platform android
+eas build --profile development --platform ios
 ```
 
-You will need to add an EAS project first, and if you are forking this repo, change the app
-identifier in `app.json` (`ios.bundleIdentifier` and `android.package`) to a namespace you own.
+When the build finishes, EAS gives you an install link / QR code.
 
-### On a simulator or emulator
+**Option B: local build on your machine**
 
 ```sh
-npm run ios       # iOS Simulator, macOS only
-npm run android   # Android emulator
+npx expo prebuild
+npm run android    # needs Android SDK / emulator or a USB phone with USB debugging
+npm run ios        # macOS + Xcode only
 ```
 
-Honest limits on simulators:
+### 2. Start Metro against that build
 
-- The **iOS Simulator has no camera**. Use *Choose photo* instead, after dragging an image into the
-  simulator's Photos app.
-- The **Android emulator** offers a fake camera scene, which is fine for smoke testing but useless
-  for real garments.
-- Background removal behaves identically everywhere, because it runs in JavaScript rather than in
-  a platform framework.
+```sh
+npx expo start --dev-client
+```
+
+Open the Foset development build on the phone (not Expo Go) and connect to the same network.
+
+### Android notes
+
+- The `development` EAS profile produces an **APK** (`eas.json`), which you can sideload.
+- On first background removal, ML Kit may **download ~10MB once** over the network (Google Play
+  Services). After that, cutouts are offline. This is not a paid API and no photo leaves the
+  phone.
+- Devices without Play Services cannot use the native path and fall back to the JavaScript matte.
+
+### iPhone notes
+
+- You need an **Apple Developer** account to install on a physical iPhone.
+- Register the device, then install the development build from EAS or Xcode.
+- iOS 17+ uses Apple's built-in Vision foreground mask. iOS 16 uses a bundled **U2Netp** CoreML
+  model (~4.5MB) inside the app. No per-image network call.
+- Without a Mac, use EAS cloud builds. Local `npm run ios` needs Xcode.
+
+### Expo Go (limited)
+
+```sh
+npx expo start
+```
+
+Scanning with Expo Go still opens the app, but **native ML is unavailable**, so Foset uses the
+JavaScript flood-fill fallback and shows a notice after processing. Stay on SDK 54 if you care
+about Expo Go at all. Newer SDKs will not open in the App Store Expo Go on iPhone.
+
+### Simulators / emulators
+
+```sh
+npm run ios       # iOS Simulator, macOS only (use development-simulator EAS profile if needed)
+npm run android   # Android emulator with Google Play image preferred
+```
+
+- The **iOS Simulator has no camera**. Use *Choose photo* after dragging an image into Photos.
+- Prefer an **Android emulator with Google Play**, or the ML Kit model will not download.
 
 ## Using Foset
 
-**Add an item.** Tap `+` on the Clothes tab. Take or choose a photo and wait a couple of seconds
-for the studio shot. Pick a category, a type, a brand and a colour. Notes are optional. The title
-is generated for you and previewed at the bottom of the form.
+**Add an item.** Tap `+` on the Clothes tab. Take or choose a photo and wait for the studio shot
+(native ML is usually under a couple of seconds after the first Android model download). Pick a
+category, a type, a brand and a colour. Notes are optional. The title is generated for you and
+previewed at the bottom of the form.
 
 **Filter.** The chips above the grid filter by category, type, brand and colour. They only offer
 values you actually own. *Clear all* appears as soon as a filter is on.
@@ -150,14 +183,11 @@ has a button to start a brand new outfit with that item already selected.
 
 ### Photo tips
 
-Background removal reads the edges of the photo to learn what the background looks like, so:
-
 - Shoot the garment flat on a plain surface that contrasts with it.
 - Keep the whole item inside the frame with a little space around it.
-- Even lighting helps. Hard shadows on a busy background are the worst case.
+- Even lighting helps. Hard shadows on a busy background are still harder for any model.
 
-If the garment and the surface are too close in colour, Foset says so and keeps the photo
-uncropped rather than cutting the garment to pieces.
+If removal fails, Foset says so and keeps the photo cropped rather than mangling the garment.
 
 ## Where your data lives
 
@@ -205,37 +235,37 @@ import reports how many images were missing.
 
 ## How the studio look is made
 
-All of it is in `src/imaging/studio.ts`, roughly 400 lines of plain TypeScript over a pixel
-buffer. No native module, no paid API, no model download. That is why it runs the same in Expo Go,
-on a simulator and on a real phone.
+There is **no text prompt** and no chat model. The cutout models take pixels in and return a
+subject mask. You cannot tell them “this is clothing.” They are general subject / foreground
+segmenters, which is what you want for a hoodie on a bed.
 
-1. `expo-image-manipulator` decodes the photo, fixes its orientation and scales the long side down
-   to 720px. This is the one step that uses native code, and it is what keeps the rest fast.
-2. `jpeg-js` turns the JPEG into an RGBA buffer.
-3. A ring around the photo border is sampled, and k-means reduces it to four representative
-   background colours.
-4. A flood fill starts from the border and spreads inwards while pixels either resemble one of
-   those colours or continue smoothly from the neighbour they spread from. The second rule is what
-   follows lighting gradients and soft shadows. Starting from the border rather than matching
-   colours globally means a garment that happens to share a shade with the wall keeps its
-   interior.
-5. The matte is cleaned up: a majority filter removes speckles, a small morphological closing
-   bridges nicks where fabric shading matched the backdrop, and only the largest connected shape
-   survives, since a garment is one object.
-6. If the matte ends up scattered, nearly empty or nearly full, removal is treated as failed. The
-   photo is then only cropped and toned, and the form tells you why.
-7. The matte is eroded by a pixel to avoid a halo of half-background colour, then blurred to give
-   a soft edge, and the garment is composited onto white.
-8. The result is cropped to the garment, centred on a 900px square canvas with 8% padding and
-   sampled bilinearly.
-9. A mild tone curve finishes it: a gamma lift, a little contrast and a little saturation. Pure
-   white maps to pure white, so the backdrop stays clean.
+### Preferred path: native ML cutout
 
-Tuning lives in `DEFAULT_STUDIO_OPTIONS` at the top of the file.
+Implemented in `src/imaging/nativeMatte.ts` via [`rn-remove-image-bg`](https://www.npmjs.com/package/rn-remove-image-bg):
 
-The trade-off is honest: this is a classical algorithm, not a segmentation model. It is excellent
-on a plain, contrasting backdrop and it gives up gracefully when it cannot tell garment from
-background. In exchange, you get no native module, no download and no cloud call.
+| Platform | Model |
+| --- | --- |
+| iOS 17+ | Apple Vision foreground instance mask |
+| iOS 16 | Bundled CoreML **U2Netp** (~4.5MB in the app) |
+| Android | Google ML Kit **Subject Segmentation** (~10MB, downloaded once) |
+
+Then the same studio finish always runs in `src/imaging/studio.ts`:
+
+1. Composite the cutout onto **pure white** (no drop shadow).
+2. Auto-crop / centre on a 900px square with 8% padding.
+3. Mild brightening / contrast / saturation. Pure white stays white.
+
+### Fallback path: JavaScript flood fill
+
+If the native module is missing (Expo Go) or fails, Foset estimates the background from the photo
+border and flood-fills it away in TypeScript. That path is weaker on messy real-world photos. It
+is only a safety net.
+
+### Privacy note on the Android model download
+
+Android's first successful cutout may need network so ML Kit can fetch its subject model through
+Google Play Services. Photos are not uploaded. After that download, processing stays on device.
+iOS does not need that download for the cutout itself.
 
 ## Project layout
 
@@ -249,9 +279,10 @@ src/
   components/            shared UI, including the clothing and outfit forms
   constants/             the clothing taxonomy and the colour palette
   db/                    schema, migrations and queries
-  imaging/               the studio pipeline, the JPEG codec and photo storage
+  imaging/               native matte, studio finish, codecs, photo storage
   backup/                zip export and import
   theme.ts
+eas.json                 EAS Build profiles (development APK, iOS device, simulator)
 ```
 
 ## Contributing

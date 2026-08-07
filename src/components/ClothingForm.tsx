@@ -42,6 +42,7 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   const [errors, setErrors] = useState<Errors>({});
   const [processing, setProcessing] = useState(false);
   const [rawPhoto, setRawPhoto] = useState(false);
+  const [usedFallback, setUsedFallback] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Photos are written to disk as soon as they are processed, before the item
@@ -65,10 +66,11 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
       if (!picked) return;
 
       setProcessing(true);
-      const { fileName, backgroundRemoved } = await processAndStorePhoto(picked);
+      const { fileName, backgroundRemoved, method } = await processAndStorePhoto(picked);
       disposable.current.add(fileName);
       setImagePath(fileName);
       setRawPhoto(!backgroundRemoved);
+      setUsedFallback(method === 'javascript');
       setErrors((current) => ({ ...current, image: undefined }));
     } catch (error) {
       Alert.alert('Could not use that photo', messageOf(error));
@@ -151,8 +153,14 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
       {errors.image ? <Text style={styles.error}>{errors.image}</Text> : null}
       {rawPhoto ? (
         <Text style={styles.notice}>
-          The garment and its background looked too similar to separate, so the photo was only
-          cropped. Shooting against a plain, contrasting surface works best.
+          The background could not be removed cleanly, so the photo was only cropped. A plain,
+          contrasting surface works best.
+        </Text>
+      ) : null}
+      {!rawPhoto && usedFallback ? (
+        <Text style={styles.notice}>
+          Used the simpler on-device cutout. For the ML model, install a development build of Foset
+          instead of Expo Go.
         </Text>
       ) : null}
 

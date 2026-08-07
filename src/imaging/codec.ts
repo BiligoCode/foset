@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import * as jpeg from 'jpeg-js';
+import UPNG from 'upng-js';
 
 import type { RgbaImage } from './studio';
 
@@ -15,6 +16,17 @@ export function decodeJpeg(bytes: Uint8Array): RgbaImage {
   const decoded = jpeg.decode(bytes, { useTArray: true, formatAsRGBA: true });
   return {
     data: decoded.data as Uint8Array,
+    width: decoded.width,
+    height: decoded.height,
+  };
+}
+
+/** Decodes a PNG, including ones with a transparent background from the model. */
+export function decodePng(bytes: Uint8Array): RgbaImage {
+  const decoded = UPNG.decode(bytes);
+  const rgba = UPNG.toRGBA8(decoded)[0];
+  return {
+    data: new Uint8Array(rgba),
     width: decoded.width,
     height: decoded.height,
   };

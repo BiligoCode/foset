@@ -1,13 +1,14 @@
 /**
  * Turns an ordinary garment photo into a store-like product shot.
  *
- * The whole pipeline is plain TypeScript over an RGBA pixel buffer, so it runs
- * anywhere JavaScript runs: Expo Go, a dev build, a simulator or the browser.
- * Nothing here touches the filesystem or any native module.
+ * Background removal can come from two places:
+ * 1. A native ML cutout (preferred): iOS Vision / U2Netp or Android ML Kit
+ *    Subject Segmentation, passed in as an RGBA image with transparency.
+ * 2. A JavaScript flood-fill matte as a fallback when the native module is
+ *    missing (Expo Go) or fails.
  *
- * Steps: estimate the background from the photo border, flood fill it away,
- * soften the resulting matte, composite what is left onto pure white, then
- * crop square around the garment and apply a mild studio tone curve.
+ * After the matte is known, the same steps always run: composite onto pure
+ * white, crop square with padding, and apply a mild studio tone curve.
  */
 
 export type RgbaImage = {
@@ -38,6 +39,8 @@ export type StudioResult = {
    * which case the photo is only cropped, padded and toned.
    */
   backgroundRemoved: boolean;
+  /** Which matte path produced the result. */
+  method: 'native' | 'javascript' | 'none';
 };
 
 export const DEFAULT_STUDIO_OPTIONS: StudioOptions = {
@@ -63,24 +66,55 @@ const MAX_SUBJECT_AREA = 0.97;
  */
 const MIN_LARGEST_SHARE = 0.6;
 
+/**
+ * Builds a studio shot from the original photo, optionally using a native
+ * cutout (RGBA with transparency) for the matte instead of flood fill.
+ */
 export function createStudioShot(
   source: RgbaImage,
-  overrides: Partial<StudioOptions> = {}
+  overrides: Partial<StudioOptions> = {},
+  nativeCutout?: RgbaImage | null
 ): StudioResult {
   const options = { ...DEFAULT_STUDIO_OPTIONS, ...overrides };
-  const { width, height } = source;
 
-  let { alpha, backgroundRemoved } = buildSubjectMatte(source, options.tolerance);
-  if (!backgroundRemoved) {
-    alpha = new Uint8Array(width * height).fill(255);
+  // Prefer the model's pixels at the edges. Its alpha already softens the cut.
+  const working = nativeCutout ?? source;
+
+  let alpha: Uint8Array;
+  let backgroundRemoved: boolean;
+  let method: StudioResult['method'];
+
+  if (nativeCutout) {
+    alpha = extractAlpha(working);
+    backgroundRemoved = true;
+    method = 'native';
+  } else {
+    const matte = buildSubjectMatte(working, options.tolerance);
+    alpha = matte.alpha;
+    backgroundRemoved = matte.backgroundRemoved;
+    method = backgroundRemoved ? 'javascript' : 'none';
   }
 
-  const flattened = compositeOnWhite(source, alpha);
-  const bounds = subjectBounds(alpha, width, height);
-  const image = renderSquare(flattened, width, height, bounds, options);
+  if (!backgroundRemoved) {
+    alpha = new Uint8Array(working.width * working.height).fill(255);
+    method = 'none';
+  }
+
+  const flattened = compositeOnWhite(working, alpha);
+  const bounds = subjectBounds(alpha, working.width, working.height);
+  const image = renderSquare(flattened, working.width, working.height, bounds, options);
   applyStudioTone(image, options);
 
-  return { image, backgroundRemoved };
+  return { image, backgroundRemoved, method };
+}
+
+/** Pulls the alpha channel out of an RGBA buffer. */
+function extractAlpha(image: RgbaImage): Uint8Array {
+  const alpha = new Uint8Array(image.width * image.height);
+  for (let i = 0; i < alpha.length; i++) {
+    alpha[i] = image.data[i * 4 + 3];
+  }
+  return alpha;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -3,15 +3,15 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
 import { decodeJpeg, encodeJpeg } from './codec';
+import { tryNativeCutout } from './nativeMatte';
 import { createStudioShot } from './studio';
 
 /** Processed photos live here, inside the app sandbox and outside the gallery. */
 const IMAGES_DIRECTORY = 'clothes';
 
 /**
- * Longest side the photo is scaled to before the pixel work starts. The studio
- * pipeline is plain JavaScript, so this is the main lever on how long a save
- * takes. 720px keeps it a couple of seconds on a phone.
+ * Longest side before matte work. Native ML also downsamples (to ~1024), so this
+ * mainly caps the JavaScript fallback path.
  */
 const WORKING_SIZE = 720;
 
@@ -26,8 +26,10 @@ export type PickedPhoto = {
 export type ProcessedPhoto = {
   /** File name inside the images directory. */
   fileName: string;
-  /** False when the garment could not be told apart from its background. */
+  /** False when the background could not be removed cleanly. */
   backgroundRemoved: boolean;
+  /** Which matte path produced the result. */
+  method: 'native' | 'javascript' | 'none';
 };
 
 let cachedDirectory: Directory | null = null;
@@ -79,9 +81,9 @@ export async function pickPhoto(): Promise<PickedPhoto | null> {
 /**
  * Runs a picked photo through the studio pipeline and stores the result.
  *
- * The native manipulator does the decode, orientation fix and downscale, then
- * the JavaScript pipeline handles background removal, the white backdrop, the
- * square crop and the tone curve.
+ * Preferred path: native ML cutout, then white composite / crop / tone in JS.
+ * Fallback: JavaScript flood-fill matte when the native module is missing
+ * (Expo Go) or fails.
  */
 export async function processAndStorePhoto(photo: PickedPhoto): Promise<ProcessedPhoto> {
   const context = ImageManipulator.manipulate(photo.uri);
@@ -97,14 +99,16 @@ export async function processAndStorePhoto(photo: PickedPhoto): Promise<Processe
   const rendered = await context.renderAsync();
   const normalised = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 1 });
 
+  // Native model first. It may download its Android weights once on first use.
+  const nativeCutout = await tryNativeCutout(normalised.uri);
   const source = decodeJpeg(await new File(normalised.uri).bytes());
-  const { image, backgroundRemoved } = createStudioShot(source);
+  const { image, backgroundRemoved, method } = createStudioShot(source, {}, nativeCutout);
 
   const fileName = `${Date.now()}-${randomSuffix()}.jpg`;
   writeImage(fileName, encodeJpeg(image, OUTPUT_QUALITY));
 
   new File(normalised.uri).delete();
-  return { fileName, backgroundRemoved };
+  return { fileName, backgroundRemoved, method };
 }
 
 /** Six random characters, so two photos taken in the same millisecond differ. */
