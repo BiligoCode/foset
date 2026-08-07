@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { Button } from '../../../src/components/Button';
+import { decodeColorHexes, decodeColorNames } from '../../../src/constants/palette';
 import { deleteClothingItem, getClothingItem } from '../../../src/db/clothes';
 import { listOutfitIdsForClothing, listOutfits } from '../../../src/db/outfits';
 import type { ClothingItem, OutfitSummary } from '../../../src/db/types';
@@ -84,8 +85,12 @@ export default function ClothingDetailScreen() {
       <View style={styles.card}>
         <Detail label="Category" value={item.category} />
         {item.subcategory ? <Detail label="Type" value={item.subcategory} /> : null}
-        <Detail label="Brand" value={item.brand} />
-        <Detail label="Colour" value={item.color_name} swatch={item.color_hex} />
+        {item.brand ? <Detail label="Brand" value={item.brand} /> : null}
+        <Detail
+          label="Colour"
+          value={decodeColorNames(item.color_name).join(', ')}
+          swatches={decodeColorHexes(item.color_hex)}
+        />
         {item.notes ? <Detail label="Notes" value={item.notes} /> : null}
       </View>
 
@@ -120,12 +125,22 @@ export default function ClothingDetailScreen() {
   );
 }
 
-function Detail({ label, value, swatch }: { label: string; value: string; swatch?: string }) {
+function Detail({
+  label,
+  value,
+  swatches,
+}: {
+  label: string;
+  value: string;
+  swatches?: string[];
+}) {
   return (
     <View style={styles.detail}>
       <Text style={styles.detailLabel}>{label}</Text>
       <View style={styles.detailValueRow}>
-        {swatch ? <View style={[styles.swatch, { backgroundColor: swatch }]} /> : null}
+        {swatches?.map((swatch, index) => (
+          <View key={`${swatch}-${index}`} style={[styles.swatch, { backgroundColor: swatch }]} />
+        ))}
         <Text style={styles.detailValue}>{value}</Text>
       </View>
     </View>

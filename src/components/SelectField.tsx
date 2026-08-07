@@ -4,36 +4,46 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '../theme';
 import { OptionModal, type Option } from './OptionModal';
 
-type Props = {
+type SharedProps = {
   label: string;
   placeholder: string;
-  value: string | null;
   options: Option[];
-  onChange: (value: string | null) => void;
-  /** Shows the chosen colour next to the value. */
-  swatch?: string | null;
   disabled?: boolean;
   error?: string;
 };
 
-export function SelectField({
-  label,
-  placeholder,
-  value,
-  options,
-  onChange,
-  swatch,
-  disabled = false,
-  error,
-}: Props) {
+type SingleProps = SharedProps & {
+  multiple?: false;
+  value: string | null;
+  onChange: (value: string | null) => void;
+  /** Shows the chosen colour next to the value. */
+  swatch?: string | null;
+};
+
+type MultiProps = SharedProps & {
+  multiple: true;
+  value: string[];
+  onChange: (value: string[]) => void;
+};
+
+type Props = SingleProps | MultiProps;
+
+export function SelectField(props: Props) {
+  const { label, placeholder, options, disabled = false, error } = props;
   const [open, setOpen] = useState(false);
+
+  const display = props.multiple
+    ? props.value.length > 0
+      ? props.value.join(', ')
+      : null
+    : props.value;
 
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ?? placeholder}`}
+        accessibilityLabel={`${label}: ${display ?? placeholder}`}
         disabled={disabled}
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
@@ -42,22 +52,46 @@ export function SelectField({
           disabled && styles.disabled,
           !!error && styles.invalid,
         ]}>
-        {swatch ? <View style={[styles.swatch, { backgroundColor: swatch }]} /> : null}
-        <Text style={[styles.value, !value && styles.placeholder]} numberOfLines={1}>
-          {value ?? placeholder}
+        {!props.multiple && props.swatch ? (
+          <View style={[styles.swatch, { backgroundColor: props.swatch }]} />
+        ) : null}
+        {props.multiple && props.value.length > 0 ? (
+          <View style={styles.swatchRow}>
+            {props.value.slice(0, 4).map((name) => {
+              const hex = options.find((option) => option.value === name)?.swatch;
+              return hex ? (
+                <View key={name} style={[styles.swatch, { backgroundColor: hex }]} />
+              ) : null;
+            })}
+          </View>
+        ) : null}
+        <Text style={[styles.value, !display && styles.placeholder]} numberOfLines={1}>
+          {display ?? placeholder}
         </Text>
         <Text style={styles.chevron}>›</Text>
       </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <OptionModal
-        visible={open}
-        title={label}
-        options={options}
-        selected={value}
-        onSelect={onChange}
-        onClose={() => setOpen(false)}
-      />
+      {props.multiple ? (
+        <OptionModal
+          visible={open}
+          title={label}
+          options={options}
+          multiple
+          selected={props.value}
+          onChange={props.onChange}
+          onClose={() => setOpen(false)}
+        />
+      ) : (
+        <OptionModal
+          visible={open}
+          title={label}
+          options={options}
+          selected={props.value}
+          onSelect={props.onChange}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </View>
   );
 }
@@ -99,6 +133,10 @@ const styles = StyleSheet.create({
   chevron: {
     fontSize: 22,
     color: colors.muted,
+  },
+  swatchRow: {
+    flexDirection: 'row',
+    gap: 4,
   },
   swatch: {
     width: 22,

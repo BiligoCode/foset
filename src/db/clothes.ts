@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { buildTitle } from '../constants/taxonomy';
+import { colorsFromStored } from '../constants/palette';
 import { timestamp } from './database';
 import type { ClothingFilters, ClothingInput, ClothingItem } from './types';
 
@@ -24,8 +24,9 @@ export async function listClothes(
     params.push(filters.brand);
   }
   if (filters.colorName) {
-    conditions.push('color_name = ?');
-    params.push(filters.colorName);
+    // Colour names are `|`-joined. Match a single name inside the list.
+    conditions.push(`('|' || color_name || '|') LIKE ?`);
+    params.push(`%|${filters.colorName}|%`);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -53,13 +54,12 @@ export async function createClothingItem(
   input: ClothingInput
 ): Promise<number> {
   const now = timestamp();
-  const title = buildTitle(input.category, input.subcategory, input.color_name);
   const result = await db.runAsync(
     `INSERT INTO clothes
        (title, category, subcategory, brand, color_name, color_hex, notes, image_path, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      title,
+      input.title,
       input.category,
       input.subcategory,
       input.brand,
@@ -79,14 +79,13 @@ export async function updateClothingItem(
   id: number,
   input: ClothingInput
 ): Promise<void> {
-  const title = buildTitle(input.category, input.subcategory, input.color_name);
   await db.runAsync(
     `UPDATE clothes
         SET title = ?, category = ?, subcategory = ?, brand = ?, color_name = ?,
             color_hex = ?, notes = ?, image_path = ?, updated_at = ?
       WHERE id = ?`,
     [
-      title,
+      input.title,
       input.category,
       input.subcategory,
       input.brand,
@@ -114,23 +113,35 @@ export type FilterOptions = {
 
 /** Only the values actually present in the wardrobe, so filters never dead-end. */
 export async function listFilterOptions(db: SQLiteDatabase): Promise<FilterOptions> {
-  const [categories, subcategories, brands, colors] = await Promise.all([
+  const [categories, subcategories, brands, colorRows] = await Promise.all([
     db.getAllAsync<{ category: string }>(
       'SELECT DISTINCT category FROM clothes ORDER BY category'
     ),
     db.getAllAsync<{ subcategory: string }>(
       'SELECT DISTINCT subcategory FROM clothes WHERE subcategory IS NOT NULL ORDER BY subcategory'
     ),
-    db.getAllAsync<{ brand: string }>('SELECT DISTINCT brand FROM clothes ORDER BY brand'),
+    db.getAllAsync<{ brand: string }>(
+      `SELECT DISTINCT brand FROM clothes WHERE brand != '' ORDER BY brand`
+    ),
     db.getAllAsync<{ color_name: string; color_hex: string }>(
-      'SELECT DISTINCT color_name, color_hex FROM clothes ORDER BY color_name'
+      'SELECT color_name, color_hex FROM clothes'
     ),
   ]);
+
+  const colorMap = new Map<string, string>();
+  for (const row of colorRows) {
+    for (const color of colorsFromStored(row.color_name, row.color_hex)) {
+      colorMap.set(color.name, color.hex);
+    }
+  }
+  const colors = [...colorMap.entries()]
+    .map(([name, hex]) => ({ name, hex }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return {
     categories: categories.map((row) => row.category),
     subcategories: subcategories.map((row) => row.subcategory),
     brands: brands.map((row) => row.brand),
-    colors: colors.map((row) => ({ name: row.color_name, hex: row.color_hex })),
+    colors,
   };
 }

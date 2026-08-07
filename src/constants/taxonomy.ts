@@ -35,8 +35,11 @@ export function hasSubcategories(category: Category): boolean {
 }
 
 /**
- * Builds the display title. One-piece items have no subcategory, so they fall
- * back to the category name: "one-piece red", "hoodie black", "denim blue".
+ * Builds the default display title. Colour first, then the type. One-piece
+ * items have no subcategory, so they fall back to the category name:
+ * "red boots", "black hoodie", "blue one-piece".
+ *
+ * When several colours are tagged, pass only the first one chosen.
  */
 export function buildTitle(
   category: Category,
@@ -44,5 +47,5 @@ export function buildTitle(
   colorName: string
 ): string {
   const noun = hasSubcategories(category) ? (subcategory ?? category) : category;
-  return `${noun} ${colorName}`;
+  return `${colorName} ${noun}`;
 }

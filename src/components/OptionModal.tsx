@@ -9,27 +9,83 @@ export type Option = {
   swatch?: string;
 };
 
-type Props = {
+type SharedProps = {
   visible: boolean;
   title: string;
   options: Option[];
+  onClose: () => void;
+};
+
+type SingleProps = SharedProps & {
+  multiple?: false;
   selected: string | null;
   /** Adds a row that clears the current choice. */
   clearLabel?: string;
   onSelect: (value: string | null) => void;
-  onClose: () => void;
 };
 
-export function OptionModal({
-  visible,
-  title,
-  options,
-  selected,
-  clearLabel,
-  onSelect,
-  onClose,
-}: Props) {
-  const rows: Option[] = clearLabel ? [{ value: '', label: clearLabel }, ...options] : options;
+type MultiProps = SharedProps & {
+  multiple: true;
+  selected: string[];
+  onChange: (values: string[]) => void;
+};
+
+type Props = SingleProps | MultiProps;
+
+export function OptionModal(props: Props) {
+  const { visible, title, options, onClose } = props;
+
+  if (props.multiple) {
+    return (
+      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Text style={styles.close}>Done</Text>
+            </Pressable>
+          </View>
+
+          <FlatList
+            data={options}
+            keyExtractor={(option) => option.value}
+            style={styles.list}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            renderItem={({ item }) => {
+              const active = props.selected.includes(item.value);
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                  onPress={() => {
+                    if (active) {
+                      props.onChange(props.selected.filter((value) => value !== item.value));
+                    } else {
+                      // Append so "first selected" stays first for default titles.
+                      props.onChange([...props.selected, item.value]);
+                    }
+                  }}>
+                  {item.swatch ? (
+                    <View style={[styles.swatch, { backgroundColor: item.swatch }]} />
+                  ) : null}
+                  <Text style={[styles.rowLabel, active && styles.rowLabelActive]}>
+                    {item.label}
+                  </Text>
+                  {active ? <Text style={styles.check}>✓</Text> : null}
+                </Pressable>
+              );
+            }}
+          />
+        </View>
+      </Modal>
+    );
+  }
+
+  const rows: Option[] = props.clearLabel
+    ? [{ value: '', label: props.clearLabel }, ...options]
+    : options;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -48,14 +104,14 @@ export function OptionModal({
           style={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => {
-            const active = (item.value || null) === selected;
+            const active = (item.value || null) === props.selected;
             return (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
                 onPress={() => {
-                  onSelect(item.value || null);
+                  props.onSelect(item.value || null);
                   onClose();
                 }}>
                 {item.swatch ? (

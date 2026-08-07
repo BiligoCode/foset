@@ -39,3 +39,32 @@ export const PALETTE: readonly PaletteColor[] = [
 export function findColor(name: string): PaletteColor | undefined {
   return PALETTE.find((color) => color.name === name);
 }
+
+/** Joins colour names for the `color_name` column. Names never contain `|`. */
+export function encodeColorNames(names: string[]): string {
+  return names.join('|');
+}
+
+export function decodeColorNames(encoded: string): string[] {
+  if (!encoded) return [];
+  return encoded.split('|');
+}
+
+export function encodeColorHexes(hexes: string[]): string {
+  return hexes.join('|');
+}
+
+export function decodeColorHexes(encoded: string): string[] {
+  if (!encoded) return [];
+  return encoded.split('|');
+}
+
+/** Rebuilds palette entries from the stored name/hex columns. */
+export function colorsFromStored(names: string, hexes: string): PaletteColor[] {
+  const decodedNames = decodeColorNames(names);
+  const decodedHexes = decodeColorHexes(hexes);
+  return decodedNames.map((name, index) => ({
+    name,
+    hex: decodedHexes[index] ?? findColor(name)?.hex ?? '#888888',
+  }));
+}

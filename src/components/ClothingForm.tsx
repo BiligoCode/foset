@@ -2,7 +2,13 @@ import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { PALETTE, findColor } from '../constants/palette';
+import {
+  PALETTE,
+  decodeColorNames,
+  encodeColorHexes,
+  encodeColorNames,
+  findColor,
+} from '../constants/palette';
 import {
   CATEGORIES,
   SUBCATEGORIES,
@@ -30,14 +36,34 @@ type Props = {
   onSubmit: (input: ClothingInput) => Promise<void>;
 };
 
-type Errors = Partial<Record<'image' | 'category' | 'subcategory' | 'brand' | 'color', string>>;
+type Errors = Partial<
+  Record<'image' | 'category' | 'subcategory' | 'color' | 'title', string>
+>;
+
+function suggestedTitle(
+  category: Category | null,
+  subcategory: string | null,
+  colorNames: string[]
+): string {
+  if (!category || colorNames.length === 0) return '';
+  return buildTitle(category, subcategory, colorNames[0]);
+}
 
 export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
+  const initialColors = item ? decodeColorNames(item.color_name) : [];
+  const initialSuggested = item
+    ? suggestedTitle(item.category, item.subcategory, initialColors)
+    : '';
+
   const [imagePath, setImagePath] = useState<string | null>(item?.image_path ?? null);
   const [category, setCategory] = useState<Category | null>(item?.category ?? null);
   const [subcategory, setSubcategory] = useState<string | null>(item?.subcategory ?? null);
   const [brand, setBrand] = useState(item?.brand ?? '');
-  const [colorName, setColorName] = useState<string | null>(item?.color_name ?? null);
+  const [colorNames, setColorNames] = useState<string[]>(initialColors);
+  const [title, setTitle] = useState(item?.title ?? '');
+  const [titleTouched, setTitleTouched] = useState(
+    item ? item.title !== initialSuggested : false
+  );
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [errors, setErrors] = useState<Errors>({});
   const [processing, setProcessing] = useState(false);
@@ -50,6 +76,12 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   // closes, which covers both cancelling and retaking a photo.
   const disposable = useRef(new Set<string>());
   const keep = useRef<string | null>(null);
+
+  const draftTitle = suggestedTitle(category, subcategory, colorNames);
+
+  useEffect(() => {
+    if (!titleTouched && draftTitle) setTitle(draftTitle);
+  }, [draftTitle, titleTouched]);
 
   useEffect(
     () => () => {
@@ -87,18 +119,32 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
     setErrors((current) => ({ ...current, category: undefined, subcategory: undefined }));
   };
 
+  const changeTitle = (next: string) => {
+    setTitle(next);
+    setTitleTouched(true);
+    setErrors((current) => ({ ...current, title: undefined }));
+  };
+
   const submit = async () => {
     const found: Errors = {};
     if (!imagePath) found.image = 'Add a photo of the item.';
     if (!category) found.category = 'Choose a category.';
     else if (hasSubcategories(category) && !subcategory) found.subcategory = 'Choose a type.';
-    if (!brand.trim()) found.brand = 'Brand is required.';
-    if (!colorName) found.color = 'Choose a colour.';
+    if (colorNames.length === 0) found.color = 'Choose at least one colour.';
+    if (!title.trim()) found.title = 'Title is required.';
 
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const color = findColor(colorName!);
+    const selectedColors = colorNames
+      .map((name) => findColor(name))
+      .filter((color): color is NonNullable<typeof color> => color != null);
+    if (selectedColors.length !== colorNames.length) {
+      found.color = 'Choose colours from the palette.';
+      setErrors(found);
+      return;
+    }
+
     setSaving(true);
     // Mark the photo to keep before onSubmit navigates away. Otherwise the
     // unmount cleanup can delete the file while the DB row still points at it.
@@ -106,11 +152,12 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
     disposable.current.delete(imagePath!);
     try {
       await onSubmit({
+        title: title.trim(),
         category: category!,
         subcategory: hasSubcategories(category!) ? subcategory : null,
         brand: brand.trim(),
-        color_name: color!.name,
-        color_hex: color!.hex,
+        color_name: encodeColorNames(colorNames),
+        color_hex: encodeColorHexes(selectedColors.map((color) => color.hex)),
         notes: notes.trim() ? notes.trim() : null,
         image_path: imagePath!,
       });
@@ -124,9 +171,6 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
       Alert.alert('Could not save', messageOf(error));
     }
   };
-
-  const preview =
-    category && colorName ? buildTitle(category, subcategory, colorName) : 'Pick a type and colour';
 
   return (
     <ScrollView
@@ -209,25 +253,32 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
 
         <TextField
           label="Brand"
-          placeholder="Uniqlo, Levi's, …"
+          placeholder="Optional"
           value={brand}
           onChangeText={setBrand}
           autoCapitalize="words"
-          error={errors.brand}
         />
 
         <SelectField
           label="Colour"
-          placeholder="Choose a colour"
-          value={colorName}
-          swatch={colorName ? findColor(colorName)?.hex : null}
+          placeholder="Choose colours"
+          multiple
+          value={colorNames}
           options={PALETTE.map((color) => ({
             value: color.name,
             label: color.name,
             swatch: color.hex,
           }))}
-          onChange={setColorName}
+          onChange={setColorNames}
           error={errors.color}
+        />
+
+        <TextField
+          label="Title"
+          placeholder={draftTitle || 'Colour and type fill this in'}
+          value={title}
+          onChangeText={changeTitle}
+          error={errors.title}
         />
 
         <TextField
@@ -237,12 +288,6 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
           onChangeText={setNotes}
           multiline
         />
-
-        <View style={styles.titlePreview}>
-          <Text style={styles.titleLabel}>Title</Text>
-          <Text style={styles.titleValue}>{preview}</Text>
-          <Text style={styles.titleHint}>Built from the type and colour you pick.</Text>
-        </View>
       </View>
 
       <Button label={submitLabel} onPress={submit} busy={saving} disabled={processing} />
@@ -310,27 +355,6 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: spacing.lg,
-  },
-  titlePreview: {
-    padding: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  titleLabel: {
-    ...typography.label,
-    color: colors.muted,
-  },
-  titleValue: {
-    ...typography.heading,
-    color: colors.text,
-    marginTop: spacing.xs,
-  },
-  titleHint: {
-    ...typography.caption,
-    color: colors.muted,
-    marginTop: spacing.xs,
   },
   error: {
     ...typography.caption,

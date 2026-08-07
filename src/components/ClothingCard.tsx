@@ -39,9 +39,11 @@ export function ClothingCard({ item, onPress, selected }: Props) {
         <Text style={styles.title} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {item.brand}
-        </Text>
+        {item.brand ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {item.brand}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );
