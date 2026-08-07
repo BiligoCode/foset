@@ -1,17 +1,28 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { Button } from '../../../src/components/Button';
 import { ClothingCard } from '../../../src/components/ClothingCard';
 import { deleteOutfit, getOutfit } from '../../../src/db/outfits';
 import type { OutfitDetail } from '../../../src/db/types';
+import { twoColumnCardWidth } from '../../../src/layout/grid';
 import { colors, spacing, typography } from '../../../src/theme';
 
 export default function OutfitDetailScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = twoColumnCardWidth(screenWidth);
   const { id } = useLocalSearchParams<{ id: string }>();
   const outfitId = Number(id);
   const [outfit, setOutfit] = useState<OutfitDetail | null>(null);
@@ -60,7 +71,7 @@ export default function OutfitDetailScreen() {
       ) : (
         <View style={styles.grid}>
           {outfit.items.map((item) => (
-            <View key={item.id} style={styles.cell}>
+            <View key={item.id} style={{ width: cardWidth }}>
               <ClothingCard item={item} onPress={() => router.push(`/clothes/${item.id}`)} />
             </View>
           ))}
@@ -97,10 +108,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
-  },
-  cell: {
-    // Two per row, matching the Clothes grid.
-    width: '48%',
   },
   empty: {
     ...typography.body,

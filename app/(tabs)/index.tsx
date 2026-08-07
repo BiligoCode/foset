@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ClothingCard } from '../../src/components/ClothingCard';
 import { EmptyState } from '../../src/components/EmptyState';
@@ -13,6 +13,7 @@ import {
   type FilterOptions,
 } from '../../src/db/clothes';
 import type { ClothingFilters, ClothingItem } from '../../src/db/types';
+import { twoColumnCardWidth } from '../../src/layout/grid';
 import { colors, spacing } from '../../src/theme';
 
 const NO_OPTIONS: FilterOptions = { categories: [], subcategories: [], brands: [], colors: [] };
@@ -20,6 +21,8 @@ const NO_OPTIONS: FilterOptions = { categories: [], subcategories: [], brands: [
 export default function ClothesScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = twoColumnCardWidth(screenWidth);
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [options, setOptions] = useState<FilterOptions>(NO_OPTIONS);
   const [filters, setFilters] = useState<ClothingFilters>({});
@@ -72,7 +75,7 @@ export default function ClothesScreen() {
           />
         }
         renderItem={({ item }) => (
-          <View style={styles.cell}>
+          <View style={{ width: cardWidth }}>
             <ClothingCard item={item} onPress={() => router.push(`/clothes/${item.id}`)} />
           </View>
         )}
@@ -93,10 +96,5 @@ const styles = StyleSheet.create({
   },
   column: {
     gap: spacing.md,
-  },
-  // Half a row, so aspect-ratio images get a real width when two cards sit side by side.
-  cell: {
-    flex: 1,
-    maxWidth: '50%',
   },
 });

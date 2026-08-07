@@ -1,9 +1,10 @@
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { listClothes } from '../db/clothes';
 import type { ClothingItem } from '../db/types';
+import { twoColumnCardWidth } from '../layout/grid';
 import { colors, spacing, typography } from '../theme';
 import { Button } from './Button';
 import { ClothingCard } from './ClothingCard';
@@ -23,6 +24,8 @@ export function OutfitForm({
   onSubmit,
 }: Props) {
   const db = useSQLiteContext();
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = twoColumnCardWidth(screenWidth);
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [name, setName] = useState(initialName);
   const [selection, setSelection] = useState<number[]>(initialSelection);
@@ -86,7 +89,7 @@ export function OutfitForm({
           </Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.cell}>
+          <View style={{ width: cardWidth }}>
             <ClothingCard
               item={item}
               selected={selection.includes(item.id)}
@@ -115,10 +118,6 @@ const styles = StyleSheet.create({
   },
   column: {
     gap: spacing.md,
-  },
-  cell: {
-    flex: 1,
-    maxWidth: '50%',
   },
   header: {
     gap: spacing.lg,

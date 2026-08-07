@@ -100,6 +100,10 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
 
     const color = findColor(colorName!);
     setSaving(true);
+    // Mark the photo to keep before onSubmit navigates away. Otherwise the
+    // unmount cleanup can delete the file while the DB row still points at it.
+    keep.current = imagePath;
+    disposable.current.delete(imagePath!);
     try {
       await onSubmit({
         category: category!,
@@ -111,10 +115,11 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
         image_path: imagePath!,
       });
 
-      keep.current = imagePath;
       // A replaced photo is only orphaned once the new one is committed.
       if (item && item.image_path !== imagePath) deleteImage(item.image_path);
     } catch (error) {
+      keep.current = null;
+      if (imagePath) disposable.current.add(imagePath);
       setSaving(false);
       Alert.alert('Could not save', messageOf(error));
     }

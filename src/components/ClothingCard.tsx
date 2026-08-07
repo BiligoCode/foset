@@ -28,7 +28,7 @@ export function ClothingCard({ item, onPress, selected }: Props) {
         style={styles.image}
         contentFit="contain"
         transition={120}
-        recyclingKey={String(item.id)}
+        recyclingKey={`${item.id}:${item.image_path}`}
       />
       {selected ? (
         <View style={styles.tick}>
@@ -64,6 +64,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   image: {
+    alignSelf: 'stretch',
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#FFFFFF',
