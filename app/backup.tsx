@@ -71,7 +71,7 @@ export default function BackupScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Import</Text>
         <Text style={styles.body}>
-          Restores a backup zip. This replaces what is on the phone rather than merging, so you
+          Restores a backup zip. This replaces what is on the phone. You
           end up with exactly what the file holds.
         </Text>
         <Button
@@ -83,7 +83,7 @@ export default function BackupScreen() {
       </View>
 
       <Text style={styles.footnote}>
-        Everything stays on this device. Foset has no account and talks to no server.
+        Everything stays on this device. Foset is running locally and talks to no server.
       </Text>
     </ScrollView>
   );
