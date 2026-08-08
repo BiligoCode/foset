@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ClothingCard } from '../../src/components/ClothingCard';
@@ -14,11 +14,14 @@ import {
 } from '../../src/db/clothes';
 import type { ClothingFilters, ClothingItem } from '../../src/db/types';
 import { twoColumnCardWidth } from '../../src/layout/grid';
-import { colors, spacing } from '../../src/theme';
+import { spacing, type ThemeColors } from '../../src/theme';
+import { useTheme } from '../../src/theme/ThemeProvider';
 
 const NO_OPTIONS: FilterOptions = { categories: [], subcategories: [], brands: [], colors: [] };
 
 export default function ClothesScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const db = useSQLiteContext();
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
@@ -84,7 +87,8 @@ export default function ClothesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -97,4 +101,5 @@ const styles = StyleSheet.create({
   column: {
     gap: spacing.md,
   },
-});
+  });
+}

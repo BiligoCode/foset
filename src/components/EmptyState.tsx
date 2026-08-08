@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { spacing, typography, type ThemeColors } from '../theme';
 import { Button } from './Button';
 
 type Props = {
@@ -11,6 +13,9 @@ type Props = {
 };
 
 export function EmptyState({ title, message, actionLabel, onAction }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -22,27 +27,29 @@ export function EmptyState({ title, message, actionLabel, onAction }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  message: {
-    ...typography.body,
-    color: colors.muted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  action: {
-    marginTop: spacing.xl,
-    alignSelf: 'stretch',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.xxl,
+    },
+    title: {
+      ...typography.title,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    message: {
+      ...typography.body,
+      color: colors.muted,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    action: {
+      marginTop: spacing.xl,
+      alignSelf: 'stretch',
+    },
+  });
+}

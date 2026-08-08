@@ -2,16 +2,18 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs, useRouter } from 'expo-router';
 
 import { HeaderButton } from '../../src/components/HeaderButton';
-import { colors, typography } from '../../src/theme';
+import { useTheme } from '../../src/theme/ThemeProvider';
+import { typography } from '../../src/theme';
 
 export default function TabsLayout() {
   const router = useRouter();
+  const { colors } = useTheme();
 
-  const backupButton = () => (
+  const settingsButton = () => (
     <HeaderButton
-      label="Backup"
+      label="Settings"
       icon="ellipsis-horizontal-circle-outline"
-      onPress={() => router.push('/backup')}
+      onPress={() => router.push('/settings')}
     />
   );
 
@@ -32,7 +34,7 @@ export default function TabsLayout() {
         options={{
           title: 'Clothes',
           tabBarIcon: ({ color, size }) => <Ionicons name="shirt-outline" size={size} color={color} />,
-          headerLeft: backupButton,
+          headerLeft: settingsButton,
           headerRight: () => (
             <HeaderButton label="Add item" icon="add" onPress={() => router.push('/clothes/new')} />
           ),
@@ -45,7 +47,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="albums-outline" size={size} color={color} />
           ),
-          headerLeft: backupButton,
+          headerLeft: settingsButton,
           headerRight: () => (
             <HeaderButton
               label="New outfit"

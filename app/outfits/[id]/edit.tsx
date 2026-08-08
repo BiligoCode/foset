@@ -1,14 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { OutfitForm } from '../../../src/components/OutfitForm';
 import { getOutfit, updateOutfit } from '../../../src/db/outfits';
 import type { OutfitDetail } from '../../../src/db/types';
-import { colors } from '../../../src/theme';
+import { type ThemeColors } from '../../../src/theme';
+import { useTheme } from '../../../src/theme/ThemeProvider';
 
 export default function EditOutfitScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const db = useSQLiteContext();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,11 +43,13 @@ export default function EditOutfitScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-});
+  });
+}

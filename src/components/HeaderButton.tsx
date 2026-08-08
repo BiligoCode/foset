@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { spacing, typography, type ThemeColors } from '../theme';
 
 type Props = {
   label: string;
@@ -11,6 +13,9 @@ type Props = {
 };
 
 export function HeaderButton({ label, onPress, icon }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -27,16 +32,18 @@ export function HeaderButton({ label, onPress, icon }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  pressed: {
-    opacity: 0.5,
-  },
-  label: {
-    ...typography.heading,
-    color: colors.text,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    button: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    pressed: {
+      opacity: 0.5,
+    },
+    label: {
+      ...typography.heading,
+      color: colors.text,
+    },
+  });
+}

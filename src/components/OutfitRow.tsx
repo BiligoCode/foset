@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { OutfitSummary } from '../db/types';
 import { imageUri } from '../imaging/photos';
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { radius, spacing, typography, type ThemeColors } from '../theme';
 
 type Props = {
   outfit: OutfitSummary;
@@ -11,6 +13,9 @@ type Props = {
 };
 
 export function OutfitRow({ outfit, onPress }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -44,49 +49,51 @@ export function OutfitRow({ outfit, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  previews: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  preview: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  previewEmpty: {
-    backgroundColor: colors.background,
-  },
-  body: {
-    flex: 1,
-  },
-  name: {
-    ...typography.heading,
-    color: colors.text,
-  },
-  meta: {
-    ...typography.caption,
-    color: colors.muted,
-    marginTop: 2,
-  },
-  chevron: {
-    fontSize: 22,
-    color: colors.muted,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.lg,
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pressed: {
+      opacity: 0.75,
+    },
+    previews: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    preview: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.sm,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    previewEmpty: {
+      backgroundColor: colors.background,
+    },
+    body: {
+      flex: 1,
+    },
+    name: {
+      ...typography.heading,
+      color: colors.text,
+    },
+    meta: {
+      ...typography.caption,
+      color: colors.muted,
+      marginTop: 2,
+    },
+    chevron: {
+      fontSize: 22,
+      color: colors.muted,
+    },
+  });
+}

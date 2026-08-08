@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -25,7 +25,8 @@ import {
   processAndStorePhoto,
   type PickedPhoto,
 } from '../imaging/photos';
-import { colors, radius, spacing, typography } from '../theme';
+import { radius, spacing, typography, type ThemeColors } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 import { Button } from './Button';
 import { SelectField } from './SelectField';
 import { TextField } from './TextField';
@@ -50,6 +51,8 @@ function suggestedTitle(
 }
 
 export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const initialColors = item ? decodeColorNames(item.color_name) : [];
   const initialSuggested = item
     ? suggestedTitle(item.category, item.subcategory, initialColors)
@@ -193,6 +196,7 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
 
         {processing ? (
           <View style={styles.processing}>
+            <View style={styles.processingBackdrop} />
             <ActivityIndicator color={colors.text} />
             <Text style={styles.processingLabel}>Making a studio shot…</Text>
           </View>
@@ -299,7 +303,8 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong.';
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -340,7 +345,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  },
+  processingBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
   },
   processingLabel: {
     ...typography.body,
@@ -369,4 +378,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-});
+  });
+}

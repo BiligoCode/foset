@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { radius, spacing, typography, type ThemeColors } from '../theme';
 
 export type Option = {
   value: string;
@@ -34,6 +36,8 @@ type Props = SingleProps | MultiProps;
 
 export function OptionModal(props: Props) {
   const { visible, title, options, onClose } = props;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (props.multiple) {
     return (
@@ -130,68 +134,70 @@ export function OptionModal(props: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-  },
-  sheet: {
-    maxHeight: '70%',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    ...typography.heading,
-    color: colors.text,
-  },
-  close: {
-    ...typography.heading,
-    color: colors.muted,
-  },
-  list: {
-    paddingHorizontal: spacing.lg,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.lg,
-  },
-  rowPressed: {
-    opacity: 0.6,
-  },
-  rowLabel: {
-    ...typography.body,
-    flex: 1,
-    color: colors.text,
-  },
-  rowLabelActive: {
-    fontWeight: '600',
-  },
-  check: {
-    ...typography.body,
-    color: colors.text,
-  },
-  swatch: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+    },
+    sheet: {
+      maxHeight: '70%',
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: radius.lg,
+      borderTopRightRadius: radius.lg,
+      paddingBottom: spacing.xl,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    title: {
+      ...typography.heading,
+      color: colors.text,
+    },
+    close: {
+      ...typography.heading,
+      color: colors.muted,
+    },
+    list: {
+      paddingHorizontal: spacing.lg,
+    },
+    separator: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.lg,
+    },
+    rowPressed: {
+      opacity: 0.6,
+    },
+    rowLabel: {
+      ...typography.body,
+      flex: 1,
+      color: colors.text,
+    },
+    rowLabelActive: {
+      fontWeight: '600',
+    },
+    check: {
+      ...typography.body,
+      color: colors.text,
+    },
+    swatch: {
+      width: 22,
+      height: 22,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+  });
+}

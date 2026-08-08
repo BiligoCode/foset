@@ -1,11 +1,12 @@
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { listClothes } from '../db/clothes';
 import type { ClothingItem } from '../db/types';
 import { twoColumnCardWidth } from '../layout/grid';
-import { colors, spacing, typography } from '../theme';
+import { spacing, typography, type ThemeColors } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
 import { Button } from './Button';
 import { ClothingCard } from './ClothingCard';
 import { TextField } from './TextField';
@@ -23,6 +24,8 @@ export function OutfitForm({
   submitLabel,
   onSubmit,
 }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const db = useSQLiteContext();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = twoColumnCardWidth(screenWidth);
@@ -106,7 +109,8 @@ export function OutfitForm({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -138,4 +142,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
-});
+  });
+}

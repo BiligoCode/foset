@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { radius, spacing, typography, type ThemeColors } from '../theme';
 
 type Props = {
   label: string;
@@ -21,6 +23,9 @@ export function TextField({
   autoCapitalize = 'sentences',
   error,
 }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
@@ -39,33 +44,35 @@ export function TextField({
   );
 }
 
-const styles = StyleSheet.create({
-  label: {
-    ...typography.label,
-    color: colors.muted,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    ...typography.body,
-    minHeight: 48,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    color: colors.text,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-  },
-  multiline: {
-    minHeight: 96,
-    textAlignVertical: 'top',
-  },
-  invalid: {
-    borderColor: colors.danger,
-  },
-  error: {
-    ...typography.caption,
-    color: colors.danger,
-    marginTop: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    label: {
+      ...typography.label,
+      color: colors.muted,
+      marginBottom: spacing.sm,
+    },
+    input: {
+      ...typography.body,
+      minHeight: 48,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+      color: colors.text,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+    },
+    multiline: {
+      minHeight: 96,
+      textAlignVertical: 'top',
+    },
+    invalid: {
+      borderColor: colors.danger,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginTop: spacing.xs,
+    },
+  });
+}

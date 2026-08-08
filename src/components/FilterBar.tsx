@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SUBCATEGORIES, type Category } from '../constants/taxonomy';
 import type { FilterOptions } from '../db/clothes';
 import type { ClothingFilters } from '../db/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { useTheme } from '../theme/ThemeProvider';
+import { radius, spacing, typography, type ThemeColors } from '../theme';
 import { OptionModal, type Option } from './OptionModal';
 
 type Field = keyof ClothingFilters;
@@ -23,6 +24,8 @@ const FIELD_LABELS: Record<Field, string> = {
 };
 
 export function FilterBar({ filters, options, onChange }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [openField, setOpenField] = useState<Field | null>(null);
   const active = Object.values(filters).filter(Boolean).length > 0;
 
@@ -104,47 +107,49 @@ export function FilterBar({ filters, options, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  strip: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  chip: {
-    justifyContent: 'center',
-    minHeight: 36,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  chipDisabled: {
-    opacity: 0.4,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  chipLabel: {
-    ...typography.label,
-    color: colors.text,
-  },
-  chipLabelActive: {
-    color: colors.accentText,
-  },
-  clear: {
-    justifyContent: 'center',
-    minHeight: 36,
-    paddingHorizontal: spacing.md,
-  },
-  clearLabel: {
-    ...typography.label,
-    color: colors.muted,
-    textDecorationLine: 'underline',
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    strip: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    chip: {
+      justifyContent: 'center',
+      minHeight: 36,
+      paddingHorizontal: spacing.lg,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    chipActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    chipDisabled: {
+      opacity: 0.4,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+    chipLabel: {
+      ...typography.label,
+      color: colors.text,
+    },
+    chipLabelActive: {
+      color: colors.accentText,
+    },
+    clear: {
+      justifyContent: 'center',
+      minHeight: 36,
+      paddingHorizontal: spacing.md,
+    },
+    clearLabel: {
+      ...typography.label,
+      color: colors.muted,
+      textDecorationLine: 'underline',
+    },
+  });
+}

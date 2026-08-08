@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,9 +18,12 @@ import { deleteClothingItem, getClothingItem } from '../../../src/db/clothes';
 import { listOutfitIdsForClothing, listOutfits } from '../../../src/db/outfits';
 import type { ClothingItem, OutfitSummary } from '../../../src/db/types';
 import { deleteImage, imageUri } from '../../../src/imaging/photos';
-import { colors, radius, spacing, typography } from '../../../src/theme';
+import { radius, spacing, typography, type ThemeColors } from '../../../src/theme';
+import { useTheme } from '../../../src/theme/ThemeProvider';
 
 export default function ClothingDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const db = useSQLiteContext();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -134,6 +137,8 @@ function Detail({
   value: string;
   swatches?: string[];
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.detail}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -147,7 +152,8 @@ function Detail({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -221,4 +227,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.muted,
   },
-});
+  });
+}

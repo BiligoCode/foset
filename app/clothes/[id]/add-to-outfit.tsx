@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../../../src/components/Button';
@@ -11,13 +11,16 @@ import {
   removeClothingFromOutfit,
 } from '../../../src/db/outfits';
 import type { OutfitSummary } from '../../../src/db/types';
-import { colors, radius, spacing, typography } from '../../../src/theme';
+import { radius, spacing, typography, type ThemeColors } from '../../../src/theme';
+import { useTheme } from '../../../src/theme/ThemeProvider';
 
 /**
  * Puts one item into outfits without leaving the Clothes section. Tapping a row
  * toggles membership straight away, so there is nothing to confirm.
  */
 export default function AddToOutfitScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const db = useSQLiteContext();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -94,7 +97,8 @@ export default function AddToOutfitScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -157,4 +161,5 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
-});
+  });
+}
