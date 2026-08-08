@@ -13,13 +13,7 @@ export default function BackupScreen() {
   const runExport = async () => {
     setBusy('export');
     try {
-      const result = await exportBackup(db);
-      if (result) {
-        Alert.alert(
-          'Backup ready',
-          `${result.itemCount} items and ${result.outfitCount} outfits saved as ${result.fileName}.`
-        );
-      }
+      await exportBackup(db);
     } catch (error) {
       Alert.alert('Export failed', messageOf(error));
     } finally {
