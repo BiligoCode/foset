@@ -21,7 +21,7 @@
     "android": {
       "package": "dev.biligo.foset",
       "adaptiveIcon": {
-        "backgroundColor": "#F7F7F5",
+        "backgroundColor": "#1B1B1A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -41,7 +41,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F7F7F5"
+          "backgroundColor": "#1B1B1A"
         }
       ],
       [
