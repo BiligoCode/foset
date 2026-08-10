@@ -6,6 +6,12 @@ export type PaletteColor = {
   hex: string;
 };
 
+export const MULTICOLOUR_NAME = 'multicolour';
+
+export function isMulticolour(name?: string | null): boolean {
+  return name === MULTICOLOUR_NAME;
+}
+
 export const PALETTE: readonly PaletteColor[] = [
   { name: 'black', hex: '#111111' },
   { name: 'charcoal', hex: '#3C4043' },
@@ -33,7 +39,7 @@ export const PALETTE: readonly PaletteColor[] = [
   { name: 'lilac', hex: '#C4B7E8' },
   { name: 'purple', hex: '#6B4E9B' },
   { name: 'gold', hex: '#C9A83C' },
-  { name: 'multicolour', hex: '#8E8E93' },
+  { name: MULTICOLOUR_NAME, hex: '#8E8E93' },
 ];
 
 export function findColor(name: string): PaletteColor | undefined {

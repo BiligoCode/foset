@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 
 import { Button } from '../../../src/components/Button';
-import { decodeColorHexes, decodeColorNames } from '../../../src/constants/palette';
+import { ColorSwatch } from '../../../src/components/ColorSwatch';
+import { colorsFromStored, decodeColorNames, type PaletteColor } from '../../../src/constants/palette';
 import { deleteClothingItem, getClothingItem } from '../../../src/db/clothes';
 import { listOutfitIdsForClothing, listOutfits } from '../../../src/db/outfits';
 import type { ClothingItem, OutfitSummary } from '../../../src/db/types';
@@ -92,7 +93,7 @@ export default function ClothingDetailScreen() {
         <Detail
           label="Colour"
           value={decodeColorNames(item.color_name).join(', ')}
-          swatches={decodeColorHexes(item.color_hex)}
+          palette={colorsFromStored(item.color_name, item.color_hex)}
         />
         {item.notes ? <Detail label="Notes" value={item.notes} /> : null}
       </View>
@@ -131,11 +132,11 @@ export default function ClothingDetailScreen() {
 function Detail({
   label,
   value,
-  swatches,
+  palette,
 }: {
   label: string;
   value: string;
-  swatches?: string[];
+  palette?: PaletteColor[];
 }) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -143,8 +144,8 @@ function Detail({
     <View style={styles.detail}>
       <Text style={styles.detailLabel}>{label}</Text>
       <View style={styles.detailValueRow}>
-        {swatches?.map((swatch, index) => (
-          <View key={`${swatch}-${index}`} style={[styles.swatch, { backgroundColor: swatch }]} />
+        {palette?.map((swatch) => (
+          <ColorSwatch key={swatch.name} name={swatch.name} hex={swatch.hex} />
         ))}
         <Text style={styles.detailValue}>{value}</Text>
       </View>
@@ -210,13 +211,6 @@ function createStyles(colors: ThemeColors) {
     color: colors.text,
     flexShrink: 1,
     textAlign: 'right',
-  },
-  swatch: {
-    width: 18,
-    height: 18,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   link: {
     ...typography.body,

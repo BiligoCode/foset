@@ -3,6 +3,7 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native
 
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, spacing, typography, type ThemeColors } from '../theme';
+import { ColorSwatch } from './ColorSwatch';
 
 export type Option = {
   value: string;
@@ -71,9 +72,7 @@ export function OptionModal(props: Props) {
                       props.onChange([...props.selected, item.value]);
                     }
                   }}>
-                  {item.swatch ? (
-                    <View style={[styles.swatch, { backgroundColor: item.swatch }]} />
-                  ) : null}
+                  {item.swatch ? <ColorSwatch name={item.value} hex={item.swatch} /> : null}
                   <Text style={[styles.rowLabel, active && styles.rowLabelActive]}>
                     {item.label}
                   </Text>
@@ -118,9 +117,7 @@ export function OptionModal(props: Props) {
                   props.onSelect(item.value || null);
                   onClose();
                 }}>
-                {item.swatch ? (
-                  <View style={[styles.swatch, { backgroundColor: item.swatch }]} />
-                ) : null}
+                {item.swatch ? <ColorSwatch name={item.value} hex={item.swatch} /> : null}
                 <Text style={[styles.rowLabel, active && styles.rowLabelActive]}>
                   {item.label}
                 </Text>
@@ -191,13 +188,6 @@ function createStyles(colors: ThemeColors) {
     check: {
       ...typography.body,
       color: colors.text,
-    },
-    swatch: {
-      width: 22,
-      height: 22,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
   });
 }

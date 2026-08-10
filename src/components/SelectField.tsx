@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, spacing, typography, type ThemeColors } from '../theme';
+import { ColorSwatch } from './ColorSwatch';
 import { OptionModal, type Option } from './OptionModal';
 
 type SharedProps = {
@@ -56,15 +57,13 @@ export function SelectField(props: Props) {
           !!error && styles.invalid,
         ]}>
         {!props.multiple && props.swatch ? (
-          <View style={[styles.swatch, { backgroundColor: props.swatch }]} />
+          <ColorSwatch name={props.value ?? undefined} hex={props.swatch} />
         ) : null}
         {props.multiple && props.value.length > 0 ? (
           <View style={styles.swatchRow}>
             {props.value.slice(0, 4).map((name) => {
               const hex = options.find((option) => option.value === name)?.swatch;
-              return hex ? (
-                <View key={name} style={[styles.swatch, { backgroundColor: hex }]} />
-              ) : null;
+              return hex ? <ColorSwatch key={name} name={name} hex={hex} /> : null;
             })}
           </View>
         ) : null}
@@ -141,13 +140,6 @@ function createStyles(colors: ThemeColors) {
     swatchRow: {
       flexDirection: 'row',
       gap: 4,
-    },
-    swatch: {
-      width: 22,
-      height: 22,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     error: {
       ...typography.caption,
