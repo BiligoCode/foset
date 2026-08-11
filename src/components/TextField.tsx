@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, spacing, typography, type ThemeColors } from '../theme';
@@ -12,6 +12,7 @@ type Props = {
   multiline?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words';
   error?: string;
+  onFocus?: TextInputProps['onFocus'];
 };
 
 export function TextField({
@@ -22,6 +23,7 @@ export function TextField({
   multiline = false,
   autoCapitalize = 'sentences',
   error,
+  onFocus,
 }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -37,6 +39,7 @@ export function TextField({
         placeholderTextColor={colors.muted}
         multiline={multiline}
         autoCapitalize={autoCapitalize}
+        onFocus={onFocus}
         style={[styles.input, multiline && styles.multiline, !!error && styles.invalid]}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

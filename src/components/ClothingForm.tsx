@@ -1,6 +1,18 @@
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 
 import {
   PALETTE,
@@ -53,6 +65,7 @@ function suggestedTitle(
 export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const headerHeight = useHeaderHeight();
   const initialColors = item ? decodeColorNames(item.color_name) : [];
   const initialSuggested = item
     ? suggestedTitle(item.category, item.subcategory, initialColors)
@@ -73,12 +86,19 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   const [rawPhoto, setRawPhoto] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Edge-to-edge Android no longer resizes the window for the keyboard, so the
+  // form has to leave room and scroll the focused field into view itself.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Photos are written to disk as soon as they are processed, before the item
   // exists. Whatever the item does not end up using is removed when the form
   // closes, which covers both cancelling and retaking a photo.
   const disposable = useRef(new Set<string>());
   const keep = useRef<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const fieldsTop = useRef(0);
+  const fieldLocalY = useRef<Record<string, number>>({});
+  const focusedField = useRef<string | null>(null);
 
   const draftTitle = suggestedTitle(category, subcategory, colorNames);
 
@@ -94,6 +114,53 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
     },
     []
   );
+
+  useEffect(() => {
+    function scrollToField(key: string) {
+      const local = fieldLocalY.current[key];
+      if (local == null) return;
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, fieldsTop.current + local - spacing.lg),
+        animated: true,
+      });
+    }
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      const key = focusedField.current;
+      if (key) {
+        // Padding updates on the next paint, then scroll the focused field up.
+        requestAnimationFrame(() => scrollToField(key));
+      }
+    });
+    const hide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+      focusedField.current = null;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const rememberField = (key: string) => (event: LayoutChangeEvent) => {
+    fieldLocalY.current[key] = event.nativeEvent.layout.y;
+  };
+
+  const focusField = (key: string) => () => {
+    focusedField.current = key;
+    const local = fieldLocalY.current[key];
+    if (local == null) return;
+    // Keyboard height often arrives after focus. Retry shortly as a fallback.
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, fieldsTop.current + local - spacing.lg),
+        animated: true,
+      });
+    }, 100);
+  };
 
   const takePhoto = async (source: () => Promise<PickedPhoto | null>) => {
     try {
@@ -176,126 +243,152 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
-      <View style={styles.photo}>
-        {imagePath ? (
-          <Image
-            source={{ uri: imageUri(imagePath) }}
-            style={styles.photoImage}
-            contentFit="contain"
-            transition={150}
-          />
-        ) : (
-          <View style={styles.photoPlaceholder}>
-            <Text style={styles.photoHint}>No photo yet</Text>
-          </View>
-        )}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={headerHeight}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom:
+              spacing.xxl + (Platform.OS === 'android' ? keyboardHeight : 0),
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag">
+        <View style={styles.photo}>
+          {imagePath ? (
+            <Image
+              source={{ uri: imageUri(imagePath) }}
+              style={styles.photoImage}
+              contentFit="contain"
+              transition={150}
+            />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <Text style={styles.photoHint}>No photo yet</Text>
+            </View>
+          )}
 
-        {processing ? (
-          <View style={styles.processing}>
-            <View style={styles.processingBackdrop} />
-            <ActivityIndicator color={colors.text} />
-            <Text style={styles.processingLabel}>Making a studio shot…</Text>
-          </View>
+          {processing ? (
+            <View style={styles.processing}>
+              <View style={styles.processingBackdrop} />
+              <ActivityIndicator color={colors.text} />
+              <Text style={styles.processingLabel}>Making a studio shot…</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {errors.image ? <Text style={styles.error}>{errors.image}</Text> : null}
+        {rawPhoto ? (
+          <Text style={styles.notice}>
+            The background could not be removed cleanly, so the photo was only cropped. A plain,
+            contrasting surface works best.
+          </Text>
         ) : null}
-      </View>
+        {!rawPhoto && usedFallback ? (
+          <Text style={styles.notice}>
+            Used the simpler on-device cutout. For the ML model, install a development build of Foset
+            instead of Expo Go.
+          </Text>
+        ) : null}
 
-      {errors.image ? <Text style={styles.error}>{errors.image}</Text> : null}
-      {rawPhoto ? (
-        <Text style={styles.notice}>
-          The background could not be removed cleanly, so the photo was only cropped. A plain,
-          contrasting surface works best.
-        </Text>
-      ) : null}
-      {!rawPhoto && usedFallback ? (
-        <Text style={styles.notice}>
-          Used the simpler on-device cutout. For the ML model, install a development build of Foset
-          instead of Expo Go.
-        </Text>
-      ) : null}
+        <View style={styles.photoActions}>
+          <Button
+            label="Take photo"
+            variant="secondary"
+            onPress={() => takePhoto(capturePhoto)}
+            disabled={processing}
+            style={styles.photoButton}
+          />
+          <Button
+            label="Choose photo"
+            variant="secondary"
+            onPress={() => takePhoto(pickPhoto)}
+            disabled={processing}
+            style={styles.photoButton}
+          />
+        </View>
 
-      <View style={styles.photoActions}>
-        <Button
-          label="Take photo"
-          variant="secondary"
-          onPress={() => takePhoto(capturePhoto)}
-          disabled={processing}
-          style={styles.photoButton}
-        />
-        <Button
-          label="Choose photo"
-          variant="secondary"
-          onPress={() => takePhoto(pickPhoto)}
-          disabled={processing}
-          style={styles.photoButton}
-        />
-      </View>
-
-      <View style={styles.fields}>
-        <SelectField
-          label="Category"
-          placeholder="Choose a category"
-          value={category}
-          options={CATEGORIES.map((value) => ({ value, label: value }))}
-          onChange={changeCategory}
-          error={errors.category}
-        />
-
-        {category && hasSubcategories(category) ? (
+        <View
+          style={styles.fields}
+          onLayout={(event) => {
+            fieldsTop.current = event.nativeEvent.layout.y;
+          }}>
           <SelectField
-            label="Type"
-            placeholder="Choose a type"
-            value={subcategory}
-            options={SUBCATEGORIES[category].map((value) => ({ value, label: value }))}
-            onChange={setSubcategory}
-            error={errors.subcategory}
+            label="Category"
+            placeholder="Choose a category"
+            value={category}
+            options={CATEGORIES.map((value) => ({ value, label: value }))}
+            onChange={changeCategory}
+            error={errors.category}
           />
-        ) : null}
 
-        <TextField
-          label="Brand"
-          placeholder="Optional"
-          value={brand}
-          onChangeText={setBrand}
-          autoCapitalize="words"
-        />
+          {category && hasSubcategories(category) ? (
+            <SelectField
+              label="Type"
+              placeholder="Choose a type"
+              value={subcategory}
+              options={SUBCATEGORIES[category].map((value) => ({ value, label: value }))}
+              onChange={setSubcategory}
+              error={errors.subcategory}
+            />
+          ) : null}
 
-        <SelectField
-          label="Colour"
-          placeholder="Choose colours"
-          multiple
-          value={colorNames}
-          options={PALETTE.map((color) => ({
-            value: color.name,
-            label: color.name,
-            swatch: color.hex,
-          }))}
-          onChange={setColorNames}
-          error={errors.color}
-        />
+          <View onLayout={rememberField('brand')}>
+            <TextField
+              label="Brand"
+              placeholder="Optional"
+              value={brand}
+              onChangeText={setBrand}
+              autoCapitalize="words"
+              onFocus={focusField('brand')}
+            />
+          </View>
 
-        <TextField
-          label="Title"
-          placeholder={draftTitle || 'Colour and type fill this in'}
-          value={title}
-          onChangeText={changeTitle}
-          error={errors.title}
-        />
+          <SelectField
+            label="Colour"
+            placeholder="Choose colours"
+            multiple
+            value={colorNames}
+            options={PALETTE.map((color) => ({
+              value: color.name,
+              label: color.name,
+              swatch: color.hex,
+            }))}
+            onChange={setColorNames}
+            error={errors.color}
+          />
 
-        <TextField
-          label="Notes"
-          placeholder="Optional"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-        />
-      </View>
+          <View onLayout={rememberField('title')}>
+            <TextField
+              label="Title"
+              placeholder={draftTitle || 'Colour and type fill this in'}
+              value={title}
+              onChangeText={changeTitle}
+              error={errors.title}
+              onFocus={focusField('title')}
+            />
+          </View>
 
-      <Button label={submitLabel} onPress={submit} busy={saving} disabled={processing} />
-    </ScrollView>
+          <View onLayout={rememberField('notes')}>
+            <TextField
+              label="Notes"
+              placeholder="Optional"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              onFocus={focusField('notes')}
+            />
+          </View>
+        </View>
+
+        <Button label={submitLabel} onPress={submit} busy={saving} disabled={processing} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -308,6 +401,9 @@ function createStyles(colors: ThemeColors) {
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,
