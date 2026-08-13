@@ -49,8 +49,9 @@ export function ColorSwatch({ name, hex, size = 22, style }: Props) {
 
 function MulticolourArcs({ size }: { size: number }) {
   const count = ARC_COLORS.length;
-  // Slightly oversized so neighbouring wedges seal hairline gaps.
-  const halfBase = (size / 2) * Math.tan(Math.PI / count) * 1.05;
+  // Reach the square corners (not just the mid-edge), then clip.
+  const reach = (size / 2) * Math.SQRT2 * 1.02;
+  const halfBase = reach * Math.tan(Math.PI / count) * 1.05;
 
   return (
     <>
@@ -67,13 +68,13 @@ function MulticolourArcs({ size }: { size: number }) {
             style={{
               position: 'absolute',
               left: size / 2 - halfBase,
-              top: 0,
+              top: size / 2 - reach,
               width: 0,
               height: 0,
               borderStyle: 'solid',
               borderLeftWidth: halfBase,
               borderRightWidth: halfBase,
-              borderTopWidth: size / 2,
+              borderTopWidth: reach,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
               borderTopColor: color,
