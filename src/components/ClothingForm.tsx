@@ -6,6 +6,7 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -30,6 +31,7 @@ import {
 } from '../constants/taxonomy';
 import type { ClothingInput, ClothingItem } from '../db/types';
 import {
+  PermissionDeniedError,
   capturePhoto,
   deleteImage,
   imageUri,
@@ -175,6 +177,13 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
       setUsedFallback(method === 'javascript');
       setErrors((current) => ({ ...current, image: undefined }));
     } catch (error) {
+      if (error instanceof PermissionDeniedError) {
+        Alert.alert('Permission needed', error.message, [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+        ]);
+        return;
+      }
       Alert.alert('Could not use that photo', messageOf(error));
     } finally {
       setProcessing(false);
@@ -184,7 +193,7 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
   const changeCategory = (next: string | null) => {
     const value = next as Category | null;
     setCategory(value);
-    // Subcategories are per category, and one-piece items have none at all.
+    // Types are per category, so a leftover type from the last category is wrong.
     setSubcategory(null);
     setErrors((current) => ({ ...current, category: undefined, subcategory: undefined }));
   };
@@ -291,8 +300,7 @@ export function ClothingForm({ item, submitLabel, onSubmit }: Props) {
         ) : null}
         {!rawPhoto && usedFallback ? (
           <Text style={styles.notice}>
-            Used the simpler on-device cutout. For the ML model, install a development build of Foset
-            instead of Expo Go.
+            Used the simpler on-device cutout. A plain, contrasting surface usually works better.
           </Text>
         ) : null}
 

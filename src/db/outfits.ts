@@ -1,15 +1,22 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { timestamp } from './database';
+import { containsPattern, timestamp } from './database';
 import type { ClothingItem, Outfit, OutfitDetail, OutfitSummary } from './types';
 
 /** How many thumbnails a list row shows. */
 const PREVIEW_LIMIT = 4;
 
-export async function listOutfits(db: SQLiteDatabase): Promise<OutfitSummary[]> {
-  const outfits = await db.getAllAsync<Outfit>(
-    'SELECT * FROM outfits ORDER BY created_at DESC, id DESC'
-  );
+export async function listOutfits(
+  db: SQLiteDatabase,
+  search = ''
+): Promise<OutfitSummary[]> {
+  const namePattern = containsPattern(search);
+  const outfits = namePattern
+    ? await db.getAllAsync<Outfit>(
+        `SELECT * FROM outfits WHERE name LIKE ? ESCAPE '\\' ORDER BY created_at DESC, id DESC`,
+        [namePattern]
+      )
+    : await db.getAllAsync<Outfit>('SELECT * FROM outfits ORDER BY created_at DESC, id DESC');
   if (outfits.length === 0) return [];
 
   const previews = await db.getAllAsync<{ outfit_id: number; image_path: string }>(
@@ -34,6 +41,11 @@ export async function listOutfits(db: SQLiteDatabase): Promise<OutfitSummary[]> 
       previewImages: images.slice(0, PREVIEW_LIMIT),
     };
   });
+}
+
+export async function countOutfits(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ total: number }>('SELECT COUNT(*) AS total FROM outfits');
+  return row?.total ?? 0;
 }
 
 export async function getOutfit(db: SQLiteDatabase, id: number): Promise<OutfitDetail | null> {

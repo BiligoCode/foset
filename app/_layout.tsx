@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { FirstRunTips } from '../src/components/FirstRunTips';
 import { DATABASE_NAME, migrateDatabase } from '../src/db/database';
+import { loadTipsSeen, saveTipsSeen } from '../src/theme/preferences';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { typography, type ThemeColors } from '../src/theme';
 
@@ -22,8 +24,29 @@ export default function RootLayout() {
   );
 }
 
+const coverStyle = {
+  ...StyleSheet.absoluteFillObject,
+  zIndex: 10,
+};
+
 function RootNavigation() {
   const { colors, scheme } = useTheme();
+  const [tipsSeen, setTipsSeen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadTipsSeen().then((seen) => {
+      if (!cancelled) setTipsSeen(seen);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dismissTips = () => {
+    setTipsSeen(true);
+    void saveTipsSeen();
+  };
 
   return (
     <>
@@ -43,7 +66,18 @@ function RootNavigation() {
         <Stack.Screen name="outfits/new" options={{ title: 'New outfit' }} />
         <Stack.Screen name="outfits/[id]/edit" options={{ title: 'Edit outfit' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
       </Stack>
+      {tipsSeen === null ? (
+        <View style={coverStyle}>
+          <Starting />
+        </View>
+      ) : null}
+      {tipsSeen === false ? (
+        <View style={coverStyle}>
+          <FirstRunTips onContinue={dismissTips} />
+        </View>
+      ) : null}
     </>
   );
 }

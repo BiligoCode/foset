@@ -1,5 +1,6 @@
 /** The fixed clothing taxonomy. Titles are generated from it, so it is the one
- *  place to change if you want different categories. */
+ *  place to change if you want different types. Every category includes `other`
+ *  so an item can always be saved. */
 
 export const CATEGORIES = [
   'top',
@@ -12,8 +13,22 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
+export const OTHER_TYPE = 'other';
+
 export const SUBCATEGORIES: Record<Category, readonly string[]> = {
-  top: ['tshirt', 'hoodie', 'sweater', 'pullover', 'cardigan', 'tank', 'blouse', 'short-sleeve'],
+  top: [
+    'tshirt',
+    'hoodie',
+    'sweater',
+    'pullover',
+    'cardigan',
+    'tank',
+    'blouse',
+    'shirt',
+    'short-sleeve',
+    'long-sleeve',
+    OTHER_TYPE,
+  ],
   bottom: [
     'denim',
     'sweatpants',
@@ -23,11 +38,22 @@ export const SUBCATEGORIES: Record<Category, readonly string[]> = {
     'maxi skirt',
     'mini skirt',
     'leggings',
+    OTHER_TYPE,
   ],
-  outerwear: ['puffer', 'jacket'],
-  'one-piece': [],
-  accessory: ['belt', 'scarf', 'hat'],
-  footwear: ['running', 'sneakers', 'heels', 'open-toe', 'boots'],
+  outerwear: ['puffer', 'jacket', 'coat', 'blazer', 'raincoat', 'vest', OTHER_TYPE],
+  'one-piece': ['dress', 'jumpsuit', 'romper', OTHER_TYPE],
+  accessory: ['belt', 'scarf', 'hat', 'bag', 'jewelry', 'glasses', OTHER_TYPE],
+  footwear: [
+    'running',
+    'sneakers',
+    'heels',
+    'open-toe',
+    'boots',
+    'sandals',
+    'loafers',
+    'slippers',
+    OTHER_TYPE,
+  ],
 };
 
 export function hasSubcategories(category: Category): boolean {
@@ -35,17 +61,15 @@ export function hasSubcategories(category: Category): boolean {
 }
 
 /**
- * Builds the default display title. Colour first, then the type. One-piece
- * items have no subcategory, so they fall back to the category name:
- * "red boots", "black hoodie", "blue one-piece".
- *
- * When several colours are tagged, pass only the first one chosen.
+ * Builds the default display title. Colour first, then the type.
+ * `other` falls back to the category so you get "black top", not "black other".
  */
 export function buildTitle(
   category: Category,
   subcategory: string | null,
   colorName: string
 ): string {
-  const noun = hasSubcategories(category) ? (subcategory ?? category) : category;
+  const noun =
+    subcategory && subcategory !== OTHER_TYPE ? subcategory : category;
   return `${colorName} ${noun}`;
 }

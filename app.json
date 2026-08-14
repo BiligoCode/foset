@@ -27,7 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -48,7 +48,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Foset needs your photo library so you can add clothes you have already photographed.",
-          "cameraPermission": "Foset needs the camera so you can photograph a piece of clothing."
+          "cameraPermission": "Foset needs the camera so you can photograph a piece of clothing.",
+          "microphonePermission": false
         }
       ],
       "expo-font"

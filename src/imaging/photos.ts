@@ -32,6 +32,14 @@ export type ProcessedPhoto = {
   method: 'native' | 'javascript' | 'none';
 };
 
+/** Thrown when the user has denied camera or photo library access. */
+export class PermissionDeniedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PermissionDeniedError';
+  }
+}
+
 let cachedDirectory: Directory | null = null;
 
 /**
@@ -55,7 +63,9 @@ export function imageUri(fileName: string): string {
 export async function capturePhoto(): Promise<PickedPhoto | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Foset needs camera access to photograph an item.');
+    throw new PermissionDeniedError(
+      'Foset needs camera access to photograph an item. You can turn the camera on in Settings.'
+    );
   }
   const result = await ImagePicker.launchCameraAsync({
     mediaTypes: ['images'],
@@ -68,7 +78,9 @@ export async function capturePhoto(): Promise<PickedPhoto | null> {
 export async function pickPhoto(): Promise<PickedPhoto | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Foset needs photo library access to pick an item.');
+    throw new PermissionDeniedError(
+      'Foset needs photo library access to pick an item. You can turn photos on in Settings.'
+    );
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],

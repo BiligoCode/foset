@@ -66,3 +66,10 @@ export async function clearDatabase(db: SQLiteDatabase): Promise<void> {
 export function timestamp(): string {
   return new Date().toISOString();
 }
+
+/** LIKE pattern for a substring match. Null when the query is empty. */
+export function containsPattern(query: string): string | null {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+  return `%${trimmed.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')}%`;
+}

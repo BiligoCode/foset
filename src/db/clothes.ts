@@ -1,12 +1,13 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { colorsFromStored } from '../constants/palette';
-import { timestamp } from './database';
+import { containsPattern, timestamp } from './database';
 import type { ClothingFilters, ClothingInput, ClothingItem } from './types';
 
 export async function listClothes(
   db: SQLiteDatabase,
-  filters: ClothingFilters = {}
+  filters: ClothingFilters = {},
+  search = ''
 ): Promise<ClothingItem[]> {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -27,6 +28,12 @@ export async function listClothes(
     // Colour names are `|`-joined. Match a single name inside the list.
     conditions.push(`('|' || color_name || '|') LIKE ?`);
     params.push(`%|${filters.colorName}|%`);
+  }
+
+  const titlePattern = containsPattern(search);
+  if (titlePattern) {
+    conditions.push(`title LIKE ? ESCAPE '\\'`);
+    params.push(titlePattern);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

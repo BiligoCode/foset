@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,6 +9,8 @@ import { Button } from '../src/components/Button';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { radius, spacing, typography, type ThemeColors, type ThemePreference } from '../src/theme';
 
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
@@ -15,6 +19,7 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const { colors, preference, setPreference } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [busy, setBusy] = useState<'export' | 'import' | null>(null);
@@ -107,9 +112,22 @@ export default function SettingsScreen() {
         />
       </View>
 
+      <View style={styles.card}>
+        <Text style={styles.title}>Privacy</Text>
+        <Text style={styles.body}>
+          Photos stay on this phone. Foset does not run a server or collect analytics.
+        </Text>
+        <Button
+          label="Read the privacy policy"
+          variant="secondary"
+          onPress={() => router.push('/privacy')}
+        />
+      </View>
+
       <Text style={styles.footnote}>
         Everything stays on this device. Foset is running locally and talks to no server.
       </Text>
+      <Text style={styles.version}>Version {APP_VERSION}</Text>
     </ScrollView>
   );
 }
@@ -169,6 +187,11 @@ function createStyles(colors: ThemeColors) {
       color: colors.accentText,
     },
     footnote: {
+      ...typography.caption,
+      color: colors.muted,
+      textAlign: 'center',
+    },
+    version: {
       ...typography.caption,
       color: colors.muted,
       textAlign: 'center',

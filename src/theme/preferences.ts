@@ -6,32 +6,50 @@ const FILE_NAME = 'preferences.json';
 
 type StoredPreferences = {
   theme?: ThemePreference;
+  tipsSeen?: boolean;
 };
 
 function preferencesFile(): File {
   return new File(Paths.document, FILE_NAME);
 }
 
-export async function loadThemePreference(): Promise<ThemePreference> {
+async function readPreferences(): Promise<StoredPreferences> {
   const file = preferencesFile();
-  if (!file.exists) return 'system';
+  if (!file.exists) return {};
 
   try {
-    const raw = await file.text();
-    const parsed = JSON.parse(raw) as StoredPreferences;
-    if (parsed.theme === 'system' || parsed.theme === 'light' || parsed.theme === 'dark') {
-      return parsed.theme;
-    }
+    return JSON.parse(await file.text()) as StoredPreferences;
   } catch {
-    // Corrupt or unreadable file. Fall back to system.
+    // Corrupt or unreadable file. Start from an empty object.
+    return {};
   }
+}
 
+function writePreferences(prefs: StoredPreferences): void {
+  const file = preferencesFile();
+  if (file.exists) file.delete();
+  file.write(JSON.stringify(prefs));
+}
+
+export async function loadThemePreference(): Promise<ThemePreference> {
+  const parsed = await readPreferences();
+  if (parsed.theme === 'system' || parsed.theme === 'light' || parsed.theme === 'dark') {
+    return parsed.theme;
+  }
   return 'system';
 }
 
 export async function saveThemePreference(theme: ThemePreference): Promise<void> {
-  const file = preferencesFile();
-  const payload: StoredPreferences = { theme };
-  if (file.exists) file.delete();
-  file.write(JSON.stringify(payload));
+  const current = await readPreferences();
+  writePreferences({ ...current, theme });
+}
+
+export async function loadTipsSeen(): Promise<boolean> {
+  const parsed = await readPreferences();
+  return parsed.tipsSeen === true;
+}
+
+export async function saveTipsSeen(): Promise<void> {
+  const current = await readPreferences();
+  writePreferences({ ...current, tipsSeen: true });
 }

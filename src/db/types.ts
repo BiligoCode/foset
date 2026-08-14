@@ -5,7 +5,7 @@ export type ClothingItem = {
   id: number;
   title: string;
   category: Category;
-  /** Null only for one-piece items, which have no subcategory. */
+  /** Null when a type was never set, including older one-piece rows. */
   subcategory: string | null;
   /** Empty string when no brand was set. */
   brand: string;

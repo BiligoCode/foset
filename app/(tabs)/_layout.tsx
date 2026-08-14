@@ -12,7 +12,7 @@ export default function TabsLayout() {
   const settingsButton = () => (
     <HeaderButton
       label="Settings"
-      icon="ellipsis-horizontal-circle-outline"
+      icon="settings-outline"
       onPress={() => router.push('/settings')}
     />
   );
