@@ -21,6 +21,7 @@ export const SUBCATEGORIES: Record<Category, readonly string[]> = {
     'hoodie',
     'sweater',
     'pullover',
+    'quarter zip',
     'cardigan',
     'tank',
     'blouse',
